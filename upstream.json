@@ -1,0 +1,124 @@
+{
+  "$comment": "Machine-readable upstream metadata. Human guide: UPSTREAM.md. Updated by .github/workflows/upstream-sync.yml (sha.fetched/integrated) — never edit sha.pinned.",
+  "repository": "pangin/eventcatalog",
+  "upstream": {
+    "url": "https://github.com/event-catalog/eventcatalog.git",
+    "web": "https://github.com/event-catalog/eventcatalog",
+    "defaultBranch": "main",
+    "relation": "github-fork (public, inside the fork network)"
+  },
+  "branches": {
+    "main": "main",
+    "vendor": "vendor/upstream-main",
+    "syncBranchPrefix": "sync/upstream-"
+  },
+  "sha": {
+    "pinned": "7bdd692b74acc19629a3c54fc8df0409b14c2a54",
+    "pinnedAt": "2026-08-31T19:50:58+01:00",
+    "pinnedTag": "@eventcatalog/core@4.10.3",
+    "fetched": "7bdd692b74acc19629a3c54fc8df0409b14c2a54",
+    "fetchedAt": "2026-09-02T05:59:15Z",
+    "integrated": "7bdd692b74acc19629a3c54fc8df0409b14c2a54",
+    "integratedAt": "2026-09-02T05:59:15Z"
+  },
+  "owner": {
+    "github": "pangin",
+    "name": "성욱 (pangin)"
+  },
+  "sync": {
+    "cadence": "매주 월요일 00:00 UTC (09:00 KST) 예약 실행 + workflow_dispatch 수동 실행",
+    "workflow": ".github/workflows/upstream-sync.yml",
+    "identity": "deploy key \"upstream-sync\" (secret UPSTREAM_SYNC_SSH_KEY); fallback GITHUB_TOKEN with warning",
+    "mergeStrategy": "merge commit only (squash/rebase disabled at repository level)",
+    "botPushesMain": false
+  },
+  "role": {
+    "classification": "required",
+    "reason": "EventCatalog OSS core 그 자체. packages/core(@eventcatalog/core + eventcatalog CLI), sdk, create-eventcatalog, visualiser, cli, linter, connectors, breaking-changes를 모두 포함하는 monorepo. examples/default 샘플 카탈로그로 clean build/run이 가능하며, 다른 GitHub 저장소 checkout이 필요 없다(모든 패키지 간 의존은 workspace:*, registry 외 의존 없음)."
+  },
+  "licenseBoundary": {
+    "root": "MIT",
+    "commercialPaths": [
+      "packages/core/eventcatalog/src/enterprise/**",
+      "packages/core/src/federation/**",
+      "위 경로에서 파생된 빌드 산출물(packages/core/dist/**, bin/** 포함)"
+    ],
+    "productionRestriction": "commercial 경로에 한함(EventCatalog Commercial License: development/testing 목적 copy·modify 허용, production 사용은 Starter/Scale/Enterprise 구독 필요, license key 기능 우회 금지)",
+    "licenseKeyEnvVars": [
+      "EVENTCATALOG_SCALE_LICENSE_KEY",
+      "EVENTCATALOG_LICENSE_KEY_*"
+    ],
+    "ossOnlyPolicy": "license key 미설정(community edition 경로)으로만 빌드·실행. enterprise/federation 기능 활성화 금지.",
+    "licenseFiles": [
+      "LICENSE",
+      "packages/core/LICENSE",
+      "packages/core/eventcatalog/src/enterprise/LICENSE",
+      "packages/core/src/federation/LICENSE"
+    ],
+    "noticeFiles": []
+  },
+  "build": {
+    "node": "24.x",
+    "packageManager": "pnpm@10.23.0",
+    "lockfiles": [
+      "pnpm-lock.yaml (lockfileVersion 9.0, 602 KB; .npmrc sets strict-peer-dependencies=false)"
+    ],
+    "install": "pnpm install --frozen-lockfile",
+    "build": "pnpm run build:bin",
+    "test": "pnpm run test:ci",
+    "run": "pnpm run start:catalog  # dev 서버 http://localhost:3000 (examples/default)",
+    "smoke": "GET http://localhost:3000/ → 200, 본문에 'Acme Inc'; SSR: node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr",
+    "verifyWorkflow": ".github/workflows/fork-verify.yml"
+  },
+  "upstreamWorkflows": [
+    {
+      "file": ".github/workflows/verify-build.yml",
+      "triggers": "pull_request to master/main",
+      "guardedToUpstreamRepo": false
+    },
+    {
+      "file": ".github/workflows/lint.yml",
+      "triggers": "pull_request to master/main",
+      "guardedToUpstreamRepo": false
+    },
+    {
+      "file": ".github/workflows/release.yml",
+      "triggers": "push to master/next/main",
+      "guardedToUpstreamRepo": true
+    },
+    {
+      "file": ".github/workflows/notify-discord.yml",
+      "triggers": "workflow_dispatch, or release published whose tag starts with @eventcatalog/core@",
+      "guardedToUpstreamRepo": false
+    },
+    {
+      "file": ".github/workflows/redeploy-eventcatalog-examples.yml",
+      "triggers": "workflow_run of workflow 'Release' completed, when conclusion == success and head commit message starts with 'Version Packages'",
+      "guardedToUpstreamRepo": false
+    }
+  ],
+  "protection": {
+    "main": [
+      "pull-request-only",
+      "required review 1 (admin bypass for PR merge)",
+      "required checks: Fork Verify jobs",
+      "merge commit only",
+      "no force-push",
+      "no deletion"
+    ],
+    "vendor/upstream-main": [
+      "updates only by sync identity (deploy key)",
+      "no force-push",
+      "no deletion"
+    ],
+    "appliedAt": null,
+    "note": "GitHub rulesets on public repos (Free plan). appliedAt is filled when rulesets are active."
+  },
+  "linear": [
+    "GONG-871",
+    "GONG-872",
+    "GONG-876",
+    "GONG-875"
+  ],
+  "generatedAt": "2026-09-02T05:59:15Z"
+}

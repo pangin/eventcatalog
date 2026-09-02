@@ -1,0 +1,120 @@
+# Fork guardrail: clean build/run verification + vendor/metadata integrity (fork-maintained; not an upstream file)
+name: Fork Verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "vendor/upstream-main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    name: upstream.json / UPSTREAM.md consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate metadata
+        run: |
+          set -euo pipefail
+          test -f UPSTREAM.md && test -f upstream.json
+          jq -e . upstream.json > /dev/null
+          for k in .upstream.url .upstream.defaultBranch .branches.vendor .branches.main .sha.pinned .sha.fetched .sha.integrated .owner.github .sync.cadence .licenseBoundary.root; do
+            jq -e "$k" upstream.json > /dev/null || { echo "::error::upstream.json missing $k"; exit 1; }
+          done
+          for k in pinned fetched integrated; do
+            jq -r ".sha.$k" upstream.json | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::.sha.$k is not a 40-hex SHA"; exit 1; }
+          done
+          echo "upstream.json OK"
+
+  vendor-integrity:
+    name: vendor/upstream-main contains only upstream commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify vendor branch is an ancestor of upstream default branch
+        run: |
+          set -euo pipefail
+          UP_URL=$(jq -r .upstream.url upstream.json); UP_BR=$(jq -r .upstream.defaultBranch upstream.json); VENDOR=$(jq -r .branches.vendor upstream.json)
+          git remote add upstream "$UP_URL"; git fetch --no-tags upstream "$UP_BR"; git fetch --no-tags origin "$VENDOR"
+          V=$(git rev-parse "origin/$VENDOR"); U=$(git rev-parse "upstream/$UP_BR")
+          echo "vendor=$V upstream=$U"
+          git merge-base --is-ancestor "$V" "$U" || { echo "::error::$VENDOR ($V) is not an ancestor of upstream/$UP_BR ($U) — it contains non-upstream commits or upstream rewrote history."; exit 1; }
+          INTEGRATED=$(jq -r .sha.integrated upstream.json)
+          git merge-base --is-ancestor "$INTEGRATED" "$V" || { echo "::error::upstream.json .sha.integrated ($INTEGRATED) is not contained in $VENDOR ($V)"; exit 1; }
+          echo "ahead/behind (upstream-only<TAB>internal-only): $(git rev-list --left-right --count "$V...${GITHUB_SHA}")"
+
+  clean-build-run:
+    name: Clean build/run (OSS-only, no license keys)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm (version from package.json#packageManager)
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Record toolchain
+        run: |
+          { echo "## Toolchain"; echo '```'; echo "commit: $GITHUB_SHA"; echo "node: $(node --version)"; echo "pnpm: $(pnpm --version)"; echo "packageManager: $(jq -r .packageManager package.json | cut -d+ -f1)"; echo "lockfile: pnpm-lock.yaml ($(head -1 pnpm-lock.yaml))"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Assert OSS-only environment (no license keys)
+        run: |
+          set -euo pipefail
+          env | grep -E '^EVENTCATALOG_(SCALE|STARTER|LICENSE_KEY)' && { echo "::error::license key env vars present"; exit 1; } || echo "no EVENTCATALOG license env vars: OK"
+          test ! -f examples/default/.env && test ! -f examples/default/license.jwt && echo "no .env / license.jwt in examples/default: OK"
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm run build:bin
+      - name: Test (CI mode)
+        run: pnpm run test:ci
+      - name: Build sample catalog (examples/default, static)
+        run: pnpm run verify-build:catalog
+      - name: Check build size budget
+        run: node packages/core/scripts/check-build-size.js
+        env:
+          SIZE_THRESHOLD: 5
+      - name: Smoke — serve static build with `eventcatalog preview` and fetch representative pages
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$PWD/examples/default" CATALOG_DIR="$PWD/packages/core/eventcatalog" \
+            node packages/core/bin/eventcatalog.js preview > preview.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 2; done
+          fail=0
+          for p in / /discover/events /visualiser/domains/payments/1.0.0 /llms.txt; do
+            code=$(curl -s -o page.html -w '%{http_code}' "http://localhost:3000$p")
+            echo "GET $p -> $code ($(wc -c < page.html) bytes)"
+            [ "$code" = "200" ] || fail=1
+          done
+          curl -s http://localhost:3000/ | grep -q 'Acme Inc' && echo "homepage renders organizationName 'Acme Inc': OK" || fail=1
+          kill $PID || true
+          [ $fail -eq 0 ] || { echo "::error::static smoke failed"; tail -50 preview.log; exit 1; }
+      - name: Pack workspace packages (official verify-build path)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pkgs"
+          for p in sdk core linter connectors visualiser; do (cd "packages/$p" && pnpm pack --pack-destination "$RUNNER_TEMP/pkgs" > /dev/null); done
+          ls -la "$RUNNER_TEMP/pkgs"
+      - name: Install packed packages into examples/ssr and build (output=server)
+        working-directory: examples/ssr
+        run: |
+          set -euo pipefail
+          npm install "$RUNNER_TEMP"/pkgs/eventcatalog-sdk-*.tgz "$RUNNER_TEMP"/pkgs/eventcatalog-core-*.tgz "$RUNNER_TEMP"/pkgs/eventcatalog-linter-*.tgz "$RUNNER_TEMP"/pkgs/eventcatalog-connectors-*.tgz "$RUNNER_TEMP"/pkgs/eventcatalog-visualiser-*.tgz
+          npx eventcatalog build
+          test -f dist/server/entry.mjs
+      - name: Smoke — start the SSR Node server and fetch /
+        run: node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr
+      - name: Summary
+        run: |
+          { echo "## Clean build/run evidence"; echo "- static pages: $(find examples/default/dist -name index.html | wc -l) index.html files under examples/default/dist"; echo "- SSR entry: examples/ssr/dist/server/entry.mjs ($(stat -c %s examples/ssr/dist/server/entry.mjs) bytes)"; echo "- license keys: none (community edition path)"; } >> "$GITHUB_STEP_SUMMARY"
