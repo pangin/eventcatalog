@@ -84,22 +84,21 @@ jobs:
         run: node packages/core/scripts/check-build-size.js
         env:
           SIZE_THRESHOLD: 5
-      - name: Smoke — serve static build with `eventcatalog preview` and fetch representative pages
+      - name: Smoke — serve static build (examples/default/dist) and fetch representative pages
         run: |
           set -euo pipefail
-          PROJECT_DIR="$PWD/examples/default" CATALOG_DIR="$PWD/packages/core/eventcatalog" \
-            node packages/core/bin/eventcatalog.js preview > preview.log 2>&1 &
+          npx --yes serve@14 -l 3000 examples/default/dist > serve.log 2>&1 &
           PID=$!
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 2; done
           fail=0
-          for p in / /discover/events /visualiser/domains/payments/1.0.0 /llms.txt; do
+          for p in / /discover/events /docs/domains/payments /visualiser/system-context-map /visualiser/graph /llms.txt; do
             code=$(curl -s -o page.html -w '%{http_code}' "http://localhost:3000$p")
             echo "GET $p -> $code ($(wc -c < page.html) bytes)"
             [ "$code" = "200" ] || fail=1
           done
           curl -s http://localhost:3000/ | grep -q 'Acme Inc' && echo "homepage renders organizationName 'Acme Inc': OK" || fail=1
           kill $PID || true
-          [ $fail -eq 0 ] || { echo "::error::static smoke failed"; tail -50 preview.log; exit 1; }
+          [ $fail -eq 0 ] || { echo "::error::static smoke failed"; tail -50 serve.log; exit 1; }
       - name: Pack workspace packages (official verify-build path)
         run: |
           set -euo pipefail

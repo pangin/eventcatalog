@@ -2,27 +2,27 @@
 
 이 저장소는 `event-catalog/eventcatalog`의 **GitHub fork**(fork network 내부, public)입니다. 원본 기준선과 내부 수정선을 분리해 추적하며, 기계가 읽는 값은 [upstream.json](./upstream.json)에 있습니다.
 
-| 항목 | 값 |
-|---|---|
-| upstream | https://github.com/event-catalog/eventcatalog (default branch `main`) |
-| fork | https://github.com/pangin/eventcatalog |
-| 관계 | GitHub fork (public). 원본 fork network에 연결되어 있어 GitHub compare/PR UI로 upstream과 비교 가능 |
-| 기준(pinned) SHA | `7bdd692b74acc19629a3c54fc8df0409b14c2a54` (2026-08-31T19:50:58+01:00, tag `@eventcatalog/core@4.10.3`) |
-| 현재 fetched / integrated SHA | `upstream.json` → `.sha.fetched`, `.sha.integrated` (sync workflow가 갱신) |
-| owner | 성욱 (pangin) |
-| 역할 분류 | **required** — EventCatalog OSS core 그 자체. packages/core(@eventcatalog/core + eventcatalog CLI), sdk, create-eventcatalog, visualiser, cli, linter, connectors, breaking-changes를 모두 포함하는 monorepo. examples/default 샘플 카탈로그로 clean build/run이 가능하며, 다른 GitHub 저장소 checkout이 필요 없다(모든 패키지 간 의존은 workspace:*, registry 외 의존 없음). |
-| 라이선스(root) | MIT |
-| 동기화 주기 | 매주 월요일 00:00 UTC (09:00 KST) 예약 실행 + workflow_dispatch 수동 실행 |
-| 동기화 identity | deploy key `upstream-sync`(secret `UPSTREAM_SYNC_SSH_KEY`). 미등록 시 GITHUB_TOKEN으로 push하며 경고 출력 |
-| Linear | GONG-871, GONG-872, GONG-876, GONG-875 |
+| 항목                          | 값                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| upstream                      | https://github.com/event-catalog/eventcatalog (default branch `main`)                                                                                                                                                                                                                                                                                                          |
+| fork                          | https://github.com/pangin/eventcatalog                                                                                                                                                                                                                                                                                                                                         |
+| 관계                          | GitHub fork (public). 원본 fork network에 연결되어 있어 GitHub compare/PR UI로 upstream과 비교 가능                                                                                                                                                                                                                                                                            |
+| 기준(pinned) SHA              | `7bdd692b74acc19629a3c54fc8df0409b14c2a54` (2026-08-31T19:50:58+01:00, tag `@eventcatalog/core@4.10.3`)                                                                                                                                                                                                                                                                        |
+| 현재 fetched / integrated SHA | `upstream.json` → `.sha.fetched`, `.sha.integrated` (sync workflow가 갱신)                                                                                                                                                                                                                                                                                                     |
+| owner                         | 성욱 (pangin)                                                                                                                                                                                                                                                                                                                                                                  |
+| 역할 분류                     | **required** — EventCatalog OSS core 그 자체. packages/core(@eventcatalog/core + eventcatalog CLI), sdk, create-eventcatalog, visualiser, cli, linter, connectors, breaking-changes를 모두 포함하는 monorepo. examples/default 샘플 카탈로그로 clean build/run이 가능하며, 다른 GitHub 저장소 checkout이 필요 없다(모든 패키지 간 의존은 workspace:\*, registry 외 의존 없음). |
+| 라이선스(root)                | MIT                                                                                                                                                                                                                                                                                                                                                                            |
+| 동기화 주기                   | 매주 월요일 00:00 UTC (09:00 KST) 예약 실행 + workflow_dispatch 수동 실행                                                                                                                                                                                                                                                                                                      |
+| 동기화 identity               | deploy key `upstream-sync`(secret `UPSTREAM_SYNC_SSH_KEY`). 미등록 시 GITHUB_TOKEN으로 push하며 경고 출력                                                                                                                                                                                                                                                                      |
+| Linear                        | GONG-871, GONG-872, GONG-876, GONG-875                                                                                                                                                                                                                                                                                                                                         |
 
 ## 브랜치 모델
 
-| 브랜치 | 용도 | 규칙 |
-|---|---|---|
-| `vendor/upstream-main` | upstream `main`의 **exact commit**만 담는 원본 기준선 | 내부 commit·metadata 금지. 사람의 direct push 금지, sync identity만 fast-forward 갱신. force-push·삭제 금지 |
-| `main` | 내부 수정·배포 기준선(default branch) | PR로만 변경, merge commit만 허용(squash/rebase 비활성), force-push·삭제 금지, required check = `Fork Verify` |
-| `sync/upstream-<YYYYMMDD>-<sha12>` | upstream 변경을 `main`에 반영하는 PR 브랜치 | bot이 생성. `main`에는 bot이 직접 push하지 않음 |
+| 브랜치                             | 용도                                                  | 규칙                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `vendor/upstream-main`             | upstream `main`의 **exact commit**만 담는 원본 기준선 | 내부 commit·metadata 금지. 사람의 direct push 금지, sync identity만 fast-forward 갱신. force-push·삭제 금지  |
+| `main`                             | 내부 수정·배포 기준선(default branch)                 | PR로만 변경, merge commit만 허용(squash/rebase 비활성), force-push·삭제 금지, required check = `Fork Verify` |
+| `sync/upstream-<YYYYMMDD>-<sha12>` | upstream 변경을 `main`에 반영하는 PR 브랜치           | bot이 생성. `main`에는 bot이 직접 push하지 않음                                                              |
 
 Git remote는 GitHub 저장소의 속성이 아니라 **checkout/CI 설정**입니다. 모든 checkout과 CI에서 다음 규칙을 적용합니다.
 
@@ -57,16 +57,16 @@ git merge-base --is-ancestor origin/vendor/upstream-main upstream/main && echo "
 
 ## Clean build / run (runbook)
 
-| 항목 | 값 |
-|---|---|
-| Node | 24.x |
-| package manager | pnpm@10.23.0 (lockfile: pnpm-lock.yaml (lockfileVersion 9.0, 602 KB; .npmrc sets strict-peer-dependencies=false)) |
-| install | `pnpm install --frozen-lockfile` |
-| build | `pnpm run build:bin` |
-| test | `pnpm run test:ci` |
-| run | `pnpm run start:catalog  # dev 서버 http://localhost:3000 (examples/default)` |
-| smoke | GET http://localhost:3000/ → 200, 본문에 'Acme Inc'; SSR: node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr |
-| CI | `.github/workflows/fork-verify.yml` — PR/push(main, vendor/upstream-main)/수동 실행. jobs: metadata, vendor-integrity, clean-build-run |
+| 항목            | 값                                                                                                                                                                                                                                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node            | 24.x                                                                                                                                                                                                                                                                                                                                    |
+| package manager | pnpm@10.23.0 (lockfile: pnpm-lock.yaml (lockfileVersion 9.0, 602 KB; .npmrc sets strict-peer-dependencies=false))                                                                                                                                                                                                                       |
+| install         | `pnpm install --frozen-lockfile`                                                                                                                                                                                                                                                                                                        |
+| build           | `pnpm run build:bin`                                                                                                                                                                                                                                                                                                                    |
+| test            | `pnpm run test:ci`                                                                                                                                                                                                                                                                                                                      |
+| run             | `pnpm run start:catalog  # dev 서버 http://localhost:3000 (examples/default). 정적 산출물 서빙: npx serve@14 examples/default/dist`                                                                                                                                                                                                     |
+| smoke           | static: npx serve@14 examples/default/dist 후 GET /, /discover/events, /docs/domains/payments, /visualiser/system-context-map, /llms.txt → 200, 홈에 'Acme Inc'; SSR: pnpm pack(sdk/core/linter/connectors/visualiser) → examples/ssr에 npm install → npx eventcatalog build → node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr |
+| CI              | `.github/workflows/fork-verify.yml` — PR/push(main, vendor/upstream-main)/수동 실행. jobs: metadata, vendor-integrity, clean-build-run                                                                                                                                                                                                  |
 
 license key와 `.env` 없이(OSS-only) 실행합니다. license key 미설정(community edition 경로)으로만 빌드·실행. enterprise/federation 기능 활성화 금지.
 

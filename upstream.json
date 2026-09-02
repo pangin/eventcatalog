@@ -17,9 +17,9 @@
     "pinnedAt": "2026-08-31T19:50:58+01:00",
     "pinnedTag": "@eventcatalog/core@4.10.3",
     "fetched": "7bdd692b74acc19629a3c54fc8df0409b14c2a54",
-    "fetchedAt": "2026-09-02T05:59:15Z",
+    "fetchedAt": "2026-09-02T06:07:17Z",
     "integrated": "7bdd692b74acc19629a3c54fc8df0409b14c2a54",
-    "integratedAt": "2026-09-02T05:59:15Z"
+    "integratedAt": "2026-09-02T06:07:17Z"
   },
   "owner": {
     "github": "pangin",
@@ -66,8 +66,8 @@
     "install": "pnpm install --frozen-lockfile",
     "build": "pnpm run build:bin",
     "test": "pnpm run test:ci",
-    "run": "pnpm run start:catalog  # dev 서버 http://localhost:3000 (examples/default)",
-    "smoke": "GET http://localhost:3000/ → 200, 본문에 'Acme Inc'; SSR: node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr",
+    "run": "pnpm run start:catalog  # dev 서버 http://localhost:3000 (examples/default). 정적 산출물 서빙: npx serve@14 examples/default/dist",
+    "smoke": "static: npx serve@14 examples/default/dist 후 GET /, /discover/events, /docs/domains/payments, /visualiser/system-context-map, /llms.txt → 200, 홈에 'Acme Inc'; SSR: pnpm pack(sdk/core/linter/connectors/visualiser) → examples/ssr에 npm install → npx eventcatalog build → node packages/core/scripts/ci/smoke-ssr.mjs examples/ssr",
     "verifyWorkflow": ".github/workflows/fork-verify.yml"
   },
   "upstreamWorkflows": [
@@ -114,11 +114,6 @@
     "appliedAt": null,
     "note": "GitHub rulesets on public repos (Free plan). appliedAt is filled when rulesets are active."
   },
-  "linear": [
-    "GONG-871",
-    "GONG-872",
-    "GONG-876",
-    "GONG-875"
-  ],
-  "generatedAt": "2026-09-02T05:59:15Z"
+  "linear": ["GONG-871", "GONG-872", "GONG-876", "GONG-875"],
+  "generatedAt": "2026-09-02T06:07:17Z"
 }
